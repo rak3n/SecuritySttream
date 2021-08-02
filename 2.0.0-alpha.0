@@ -1,0 +1,13 @@
++ @react-native-community/masked-view@0.1.11
++ react-native-safe-area-context@3.2.0
++ react-native-safe-area-context@3.2.0
++ react-native-gesture-handler@1.10.3
++ react-native-screens@3.4.0
++ @babel/preset-env@7.1.6
+added 31 packages from 140 contributors and audited 1063 packages in 36.14s
+
+75 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
