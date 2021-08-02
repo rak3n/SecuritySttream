@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image } from 'react-native';
 import SyncStorage from 'sync-storage';
 import Host from '../Host/Host';
 import { CAMERA_KEY } from '../Storage';
+import MotionDetectSignifier from './MotionDetectSignifier';
+
+//ASSETS
+import watchIco from './../../assets/watchIco.png';
 
 const Home = ({navigation})=>{
 
@@ -41,10 +45,20 @@ const Home = ({navigation})=>{
                         <Text style={styles.settingTap}>Settings</Text>
                     </TouchableOpacity>
                 </View>
-                <View style={{flexDirection:'row', justifyContent:'space-around'}}>
-                    <Text>Extra Details</Text>
-                    <TouchableOpacity onPress={()=>navigation.navigate("ClientStream", {hostId:item.id})}>
-                        <Text>Watch Now</Text>
+                <View style={{flexDirection:'row', paddingLeft:20, paddingRight:20, justifyContent:'space-between', alignItems:'center'}}>
+                    {/* 
+                    MotionDetectSignifier Component render the motionDetection off or on based on props type as:
+                        1. ON: For only On component
+                        2. OFF: For only Off Component
+                        3: Swicth: Intelligent enough to decide on or off based on timming, using start and end time props;
+                            i> start: Start Time
+                            ii> end: End Time
+                     */}
+                    <MotionDetectSignifier type={'Switch'} start={"11:00 AM"} end={"11:00 PM"}/>
+
+                    <TouchableOpacity style={{justifyContent:'center', alignItems:'center'}} onPress={()=>navigation.navigate("ClientStream", {hostId:item.id})}>
+                        <Image source={watchIco} style={{marginBottom:2}}/>
+                        <Text style={{color:'red', lineHeight:19.07, textAlign:'center', fontSize: 14, fontWeight: '700'}}>WATCH</Text>
                     </TouchableOpacity>
                 </View>
             </View>

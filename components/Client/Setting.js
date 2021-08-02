@@ -1,7 +1,9 @@
 import React from 'react';
-import {View, TextInput, StyleSheet, Picker, Text, Slider, Switch, Button, TouchableOpacity} from 'react-native';
+import {View, TextInput, StyleSheet, Picker, Image, ScrollView, Text, Slider, Switch, Button, TouchableOpacity} from 'react-native';
 // import { TimePicker } from 'react-native-simple-time-picker';
 import { TimePickerModal } from 'react-native-paper-dates';
+import PhoneComponent from './PhoneComponent';
+
 
 const Settings = (props)=>{
 
@@ -13,6 +15,10 @@ const Settings = (props)=>{
     const [endMin, setEndMin] = React.useState(0);
     const [endVisible, setEndVisible] = React.useState(false);
     const [isScheduled, setIsScheduled]  = React.useState(true);
+    const [isDetected, setIsDetected] = React.useState(true);
+    const [nickName, setNickName] = React.useState('');
+
+    const [phones, setPhones] = React.useState([]);
 
     const onDismiss = React.useCallback(() => {
         if (visible)
@@ -38,11 +44,82 @@ const Settings = (props)=>{
     );
 
     const handleSave = ()=>{
+        makeSaveReq();
         props.navigation.goBack();
-    }
+    };
+
+    const handlePhoneAdd = ()=>{
+        var spaceArr = phones.filter((itm)=>{
+            if (itm.phone === ''){
+                return 1;
+            }
+        });
+
+        if (spaceArr.length === 0){
+            setPhones([...phones,{phone:'', error: false}]);
+        }
+    };
+
+    const saveToPhones = (prevPhone, newPhoneObj) =>{
+        var tmp = phones.map(itm=>{
+            if (itm.phone === prevPhone){
+                return newPhoneObj;
+            }
+            else {
+                return itm;
+            }
+        });
+        setPhones(tmp);
+    };
+
+    const removePhone = (index)=>{
+        var tmp = phones.filter((itm, idx)=>{
+            if (idx === index){
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        });
+
+        setPhones(tmp);
+    };
+
+    const renderPhone = phones.map((itm, idx)=>{
+        // console.log(itm.phone+idx);
+        return (
+            <PhoneComponent key={itm.phone} phone={itm.phone} phonesArray={phones} idx={idx} error={itm.error} removePhone={removePhone} submit={saveToPhones}/>
+        );
+    });
+
+    const makeSaveReq = () =>{
+        var obj = {
+            nickname: nickName,
+            phoneNumbers: phones.map(itm=>itm.phone),
+            setting:{
+                senstivity: slide * 100,
+                resolutionH: 768,
+                resolutionV: 480,
+                alertSetting: isScheduled ? 'scheduled' : 'switched',
+            },
+        };
+
+        if (isScheduled){
+            obj.setting.schedule = {
+                alertStart: (hour * 3600) + (minute * 60),
+                alertEnd: (endHour * 3600) + (endMin * 60),
+            };
+        } else
+        {
+            obj.setting.switchState = isDetected;
+        }
+
+        console.log(obj);
+    };
 
     return (
-        <View style={{flex:1, padding:16, backgroundColor:'white'}}>
+        <ScrollView style={{flex:1, padding:16, backgroundColor:'white'}}>
 
             <Text style={styles.heading}>Camera ID:</Text>
             <Text style={styles.cameraHead}>shreerammedicos</Text>
@@ -50,6 +127,8 @@ const Settings = (props)=>{
             <TextInput
                 style={styles.nickNameBox}
                 placeholder={'Nickname'}
+                value={nickName}
+                onChangeText={(name)=>setNickName(name)}
                 placeholderTextColor='#7E7E7E'
             />
 
@@ -71,6 +150,20 @@ const Settings = (props)=>{
                     onValueChange={(e)=>setSlide(e)}
                     style={styles.slider}/>
                 <Text style={{flex:1, marginLeft:10}}>{(slide * 100).toFixed()} %</Text>
+            </View>
+
+            <View style={{marginTop:20, flexDirection:'column'}}>
+                <Text style={styles.heading}>Phone Numbers</Text>
+                <View style={{marginTop:20}}>
+                    {renderPhone}
+                </View>
+                <View style={{marginTop:10}}>
+                    <TouchableOpacity onPress={handlePhoneAdd}>
+                        <Text style={{fontSize:11, lineHeight:20, fontWeight:'400', color:'#0057AD', textDecorationLine:'underline'}}>
+                            Add a Phone Number
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={{marginTop: 20, flexDirection:'column'}}>
@@ -123,19 +216,29 @@ const Settings = (props)=>{
                 </TouchableOpacity>
                 </View>
                 :
-                null
+                <View style={{flexDirection:'row',justifyContent:'center', alignItems:'center', marginTop:20}}>
+                    <Text style={{color:'#f00', fontWeight:'700'}}>OFF</Text>
+                    <Switch
+                        style={styles.switch}
+                        trackColor={{ false: "#f00", true: "#24ff00" }}
+                        thumbColor={"#f4f9f4"}
+                        ios_backgroundColor="#3e3e3e"
+                        onValueChange={()=>setIsDetected(!isDetected)}
+                        value={isDetected}/>
+                    <Text style={{color:'#24ff00', fontWeight:'700', }}>ON</Text>
+                </View>
                 }
 
             </View>
 
-            <View style={{alignItems:'center', marginTop:50}}>
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+            <View style={{alignItems:'center', marginTop:50, marginBottom:90}}>
+                <TouchableOpacity style={{...styles.saveBtn, backgroundColor: nickName.length ? '#0057ad' : '#c4c4c4'}} onPress={handleSave}>
                     <Text style={styles.saveText}>Save</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </ScrollView>
     );
-}
+};
 
 const styles = StyleSheet.create({
     cameraHead:{
@@ -208,7 +311,7 @@ const styles = StyleSheet.create({
     },
     saveText:{
         color:'white',
-    }
+    },
 });
 
 export default Settings;
