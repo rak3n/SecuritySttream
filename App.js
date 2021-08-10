@@ -37,7 +37,7 @@ import Settings from './components/Client/Setting';
 
 const Stack = createStackNavigator();
 
-const StacksComponent=()=>{
+const StacksComponent = ()=>{
   return (
     <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Home" options={{title:"", headerShown:false}} component={Home} />

@@ -4,20 +4,27 @@ import React from 'react';
 import {mediaDevices, RTCView} from 'react-native-webrtc';
 import Detect from './MotionDetect';
 import Peer from 'react-native-peerjs';
+import syncStorage from 'sync-storage';
+import { HOST_CAMERA_LOGIN_KEY } from '../Storage';
+import axios from 'axios';
+import { host } from '../../config/URL';
+import {database} from '../../config/fire';
 
-var counter = new Set();
+// var counter = new Set();
 var peer;
 
 const Stream = props => {
   const [stream, setStream] = React.useState(false);
   const [motion, setMotion] = React.useState(false);
-  var stereamNotReadyInterval;
+  var streamNotReadyInterval;
+  const ALERT_COOLDOWN_INTERVAL = 5 * 60 * 1000; //Seconds after to sendMessage;
+  const [coolDownMotion, setCoolDownMotion] = React.useState(false);
   const [blinkStreamColor, setBlinkStreamColor] = React.useState('');
 
   React.useEffect(() => {
     if (!stream) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      stereamNotReadyInterval = setInterval(() => {
+      streamNotReadyInterval = setInterval(() => {
         setBlinkStreamColor(streamColor => {
           if (streamColor === '#000') {
             return '#00FF47';
@@ -27,16 +34,46 @@ const Stream = props => {
         });
       }, 600);
     } else {
-      clearInterval(stereamNotReadyInterval);
+      clearInterval(streamNotReadyInterval);
     }
 
     return () => {
-      clearInterval(stereamNotReadyInterval);
+      clearInterval(streamNotReadyInterval);
     };
   }, [stream]);
 
+  const sendMessageAPI = async () => {
+    if (!coolDownMotion) {
+      setCoolDownMotion(true);
+      const cameraObj = syncStorage.get(HOST_CAMERA_LOGIN_KEY);
+      await axios({
+        method:'POST',
+        url: host.getSetting,
+        data: cameraObj,
+      }).then(async ({data})=>{
+        var phonesArr = data.data.phoneNumbers;
+        // console.log(data);
+        await axios({
+          method:'GET',
+          url:host.makeCall(phonesArr),
+        }).then(res=>{
+          // console.log(res);
+        }).catch(err=>{
+          console.log(err);
+        });
+      }).catch(err=>{
+        console.log(err);
+      });
+
+      setTimeout(()=>setCoolDownMotion(false), ALERT_COOLDOWN_INTERVAL);
+    }
+  };
+
   const handleMotion = () => {
     setMotion(true);
+
+    sendMessageAPI();
+
     setTimeout(() => {
       setMotion(false);
     }, 200);
@@ -46,6 +83,23 @@ const Stream = props => {
       peer.on('connection', connection=>{
           connection.send({motion: isMotion});
       });
+  };
+
+  const handleLogoutReq = async ()=>{
+    let cameraObj = syncStorage.get(HOST_CAMERA_LOGIN_KEY);
+    console.log(cameraObj);
+    await axios({
+      url: host.logout,
+      method: 'POST',
+      data: cameraObj,
+    })
+    .then(_=>{
+      props.setAuth(false);
+      syncStorage.set(HOST_CAMERA_LOGIN_KEY, false);
+    })
+    .catch(err=>{
+      console.log(err);
+    });
   };
 
   const header = (
@@ -72,7 +126,7 @@ const Stream = props => {
       </View>
       <TouchableOpacity
         style={{justifyContent: 'center', alignItems: 'center'}}
-        onPress={() => props.setAuth(false)}>
+        onPress={()=>handleLogoutReq()}>
         <Text
           style={{
             color: 'white',
@@ -89,11 +143,18 @@ const Stream = props => {
 
   const body = (
     <View style={styles.body}>
-      {stream ? (
+      {stream === false ? (
         <View style={{width: '95%', height: '100%'}}>
           <Detect handleMotion={handleMotion} />
         </View>
-      ) : null}
+      ) : stream === true ?
+        null
+      :
+        <RTCView
+          style={{width:'100%', height:400}}
+          streamURL={stream.toURL()}
+        />
+      }
     </View>
   );
 
@@ -126,10 +187,10 @@ const Stream = props => {
       />
     </View>
   );
-  const getStream = (videoSourceId, isFront) => {
+  const getStream = React.useCallback((videoSourceId, isFront, callback) => {
     mediaDevices
       .getUserMedia({
-        audio: false,
+        audio: true,
         video: {
           width: 640,
           height: 480,
@@ -139,67 +200,52 @@ const Stream = props => {
         },
       })
       .then(streamRec => {
-        //   console.log("stream", streamRec);
-        OnlyListenCall(streamRec);
+        callback(streamRec);
       })
       .catch(error => {
         // Log error
       });
-  };
+  }, []);
 
-  const OnlyListenCall = gStream => {
-    peer = new Peer();
-    peer.on('error', err => {
-      console.log(err);
-    });
-    peer.on('open', localPeerId => {
-      console.log(localPeerId);
-      setStream(gStream);
-
-      peer.on('call', call => {
-        console.log('connect Req');
-        console.log('call got', call, gStream);
-        call.answer(gStream);
+  const OnlyListenCall = React.useCallback(
+    () => {
+      peer = new Peer();
+      peer.on('error', err => {
+        console.log(err);
       });
+      peer.on('open', localPeerId => {
+        console.log(localPeerId);
+        database.ref('cameraListeners/' + syncStorage.get(HOST_CAMERA_LOGIN_KEY).cameraID + '/sessionID').set(localPeerId);
 
-      peer.on('connection', conn => {
-        counter.add(conn.peer);
-        console.log(conn);
-        console.log(counter.size + ' online');
-        // conn.on('data', data=>{
-        //     console.log('new message', data);
-        //     if(data.shouldTrack!==undefined)
-        //         {setShouldTrack(data.shouldTrack);}
-        //     if(data.shouldTrack===undefined && data!=='disconnected'){
-        //         setShouldTrack(false);
-        //     }
-        //     if(data==='disconnected'){
-        //       counter.delete(conn.peer);
-        //       console.log(counter.size+' online')
-        //       if(counter.size<1){
-        //           counter=new Set();
-        //           setShouldTrack(true);
-        //       }
-        //     }
-        //     conn.send('Ok')
-        // })
+          peer.on('call', call => {
+          console.log('connect Req');
+          setStream(true);
+          getStream('0', false, (gStream)=>{call.answer(gStream); setStream(gStream)});
+        });
       });
-    });
-  };
+    },
+    []
+  );
 
   React.useEffect(() => {
-    mediaDevices.enumerateDevices().then(sourceInfos => {
-      // console.log(sourceInfos);
-      // let videoSourceId;
-      let isFront = false;
-      // for (let i = 0; i < sourceInfos.length; i++) {
-      //   const sourceInfo = sourceInfos[i];
-      //   if(sourceInfo.kind == "videoinput" && sourceInfo.facing == (isFront ? "front" : "environment")) {
-      //     videoSourceId = sourceInfo.deviceId;
-      //   }
-      // }
-      getStream('0', isFront);
+    // mediaDevices.enumerateDevices().then(sourceInfos => {
+    //   let isFront = false;
+    //   console.log(sourceInfos);
+    //   getStream('0', isFront);
+    // });
+
+    OnlyListenCall();
+
+    database.ref('cameraListeners/' + syncStorage.get(HOST_CAMERA_LOGIN_KEY).cameraID + '/connected').on('value',snapshot=>{
+      const count = snapshot.val();
+      if (count === 0){
+        setStream(false);
+      }
     });
+
+    return ()=>{
+      console.log('closed');
+    }
   }, []);
 
   return (
@@ -214,14 +260,6 @@ const Stream = props => {
       {header}
       {body}
       {footer}
-      {/* {
-            stream ?
-                <View style={{flex:2, backgroundColor:'red', width:'100%'}}>
-                    <Detect/>
-                </View>
-            :
-                null
-        } */}
     </View>
   );
 };

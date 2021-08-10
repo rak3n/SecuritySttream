@@ -2,6 +2,13 @@ import {View, Text, TextInput, TouchableOpacity, StyleSheet} from 'react-native'
 import React from 'react';
 import { Colors } from 'react-native/Libraries/NewAppScreen';
 import Dialog, { DialogContent } from 'react-native-popup-dialog';
+import {host} from '../../config/URL';
+import axios from 'axios';
+import SyncStorage from 'sync-storage';
+import { HOST_CAMERA_LOGIN_KEY } from '../Storage';
+
+const ACCOUNT_NOT_EXIST_ERR = "camera account does not exist";
+const ACCOUNT_IN_USE_ERR = "One device already logged in with this ID";
 
 const Login = (props) => {
   const [id, setId] = React.useState('');
@@ -10,7 +17,7 @@ const Login = (props) => {
   const [logout, setLogout] = React.useState(false);
   const [alert, setAlert] = React.useState(false);
 
-  const IncorrectPopUp=(
+  const IncorrectPopUp = (
       <View style={style.popup}>
           <Text style={style.popupHead}>ERROR</Text>
           <Text style={style.popupDesc}>The Camera Id/Password are Incorrect</Text>
@@ -21,7 +28,7 @@ const Login = (props) => {
       </View>
   );
 
-  const AlertPopUp=(
+  const AlertPopUp = (
     <View style={style.popup}>
         <Text style={style.popupHead}>ERROR</Text>
         <Text style={style.popupDesc}>The Camera Id/Password are Incorrect</Text>
@@ -38,43 +45,99 @@ const Login = (props) => {
     </View>
     );
 
-    const ConfirmPopUp=(
+    const ConfirmPopUp = (
         <View style={style.popup}>
             <Text style={style.popupHead}>ARE YOU SURE?</Text>
             <Text style={style.popupDesc}>The Active Camera will be logged out and no longer be watching/streaming.</Text>
-            <TouchableOpacity onPress={()=>setLogout(false)}>
+            <TouchableOpacity onPress={()=>handleLogoutReq()}>
                 <Text style={style.popupLogout}>YES, LOG OUT</Text>
             </TouchableOpacity>
 
         </View>
         );
 
+  const handleLogoutReq = async ()=>{
+      console.log('logout');
+      await axios({
+          method:'POST',
+          data:{
+            cameraID: id,
+            password: password,
+          },
+          url: host.logout,
+      }).then(({data})=>{
+        //   console.log(data);
+          if (data.success){
+            setLogout(false);
+            setId('');
+            setPassword('');
+          }
+      }).catch(err=>{
+          console.log(err);
+      });
+  };
+
+  const makeUserLoginReq = async () => {
+      await axios({
+          method:'POST',
+          url: host.login,
+          data:{
+            cameraID: id,
+            password: password,
+          },
+      }).then(res=>{
+          let status = res.data.success;
+          if (!status){
+              console.log(res.data);
+              if (res.data.error === ACCOUNT_NOT_EXIST_ERR){
+                  setIncorrect(true);
+              } else if (res.data.error === ACCOUNT_IN_USE_ERR){
+                  setAlert(true);
+              } else {
+                 setIncorrect(true);
+              }
+          }
+          else {
+              SyncStorage.set(HOST_CAMERA_LOGIN_KEY, {
+                  cameraID: id,
+                  password,
+              });
+              props.setAuth(true);
+          }
+      }).catch(err=>{
+          console.log(err);
+      });
+    // ()=>props.setAuth(true);
+  };
+
   return (
     <View style={style.login}>
       <Text style={style.heading}>TUSC One</Text>
-      <TextInput 
-        style={style.inputs} 
+      <TextInput
+        style={style.inputs}
         placeholder="Device Id"
+        value={id}
         onChangeText={(id)=>{
             setId(id);
         }}
         placeholderTextColor="#7e7e7e"/>
-      <TextInput 
-        style={style.inputs} 
+      <TextInput
+        style={style.inputs}
+        value={password}
         placeholder='Password'
         onChangeText={(pass)=>{
             setPassword(pass);
         }}
         placeholderTextColor="#7e7e7e"/>
       <TouchableOpacity
-         style={style.button}
-         onPress={()=>props.setAuth(true)}
+         style={{...style.button, backgroundColor: id.length && password.length ?'#0057ad':'#b8b6b6'}}
+         onPress={id.length && password.length ? makeUserLoginReq : null}
        >
          <Text style={{color:'#fff'}}> Continue </Text>
        </TouchableOpacity>
 
        <TouchableOpacity style={{marginTop:10}} onPress={()=>props.setHost(false)}>
-           <Text style={{textDecorationLine:'underline', color:'#0057AD', fontSize:16, fontWeight:'bold'}}>Go as a Client</Text>
+           <Text style={{textDecorationLine:'underline', color:'#0057AD', fontSize:14, fontWeight:'700'}}>Go as a Client</Text>
        </TouchableOpacity>
 
         <Dialog
@@ -166,7 +229,7 @@ const style = StyleSheet.create({
     borderBottomWidth:0.8,
     borderColor: 'red',
     color: 'red',
-    marginTop:16
+    marginTop:16,
 },
 });
 

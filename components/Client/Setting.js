@@ -1,7 +1,9 @@
+import axios from 'axios';
 import React from 'react';
 import {View, TextInput, StyleSheet, Picker, Image, ScrollView, Text, Slider, Switch, Button, TouchableOpacity} from 'react-native';
 // import { TimePicker } from 'react-native-simple-time-picker';
 import { TimePickerModal } from 'react-native-paper-dates';
+import { client } from '../../config/URL';
 import PhoneComponent from './PhoneComponent';
 
 
@@ -14,7 +16,7 @@ const Settings = (props)=>{
     const [endHour, setEndHour] = React.useState(12);
     const [endMin, setEndMin] = React.useState(0);
     const [endVisible, setEndVisible] = React.useState(false);
-    const [isScheduled, setIsScheduled]  = React.useState(true);
+    const [isScheduled, setIsScheduled]  = React.useState(false);
     const [isDetected, setIsDetected] = React.useState(true);
     const [nickName, setNickName] = React.useState('');
 
@@ -45,7 +47,6 @@ const Settings = (props)=>{
 
     const handleSave = ()=>{
         makeSaveReq();
-        props.navigation.goBack();
     };
 
     const handlePhoneAdd = ()=>{
@@ -87,42 +88,117 @@ const Settings = (props)=>{
     };
 
     const renderPhone = phones.map((itm, idx)=>{
-        // console.log(itm.phone+idx);
         return (
             <PhoneComponent key={itm.phone} phone={itm.phone} phonesArray={phones} idx={idx} error={itm.error} removePhone={removePhone} submit={saveToPhones}/>
         );
     });
 
-    const makeSaveReq = () =>{
+    const makeSaveReq = async () =>{
         var obj = {
+            cameraID: props.route.params.item.cameraID,
+            password: props.route.params.item.password,
             nickname: nickName,
             phoneNumbers: phones.map(itm=>itm.phone),
-            setting:{
-                senstivity: slide * 100,
-                resolutionH: 768,
-                resolutionV: 480,
-                alertSetting: isScheduled ? 'scheduled' : 'switched',
-            },
+            senstivity: slide * 100,
+            resolutionH: 768,
+            resolutionV: 480,
+            alertSetting: isScheduled ? 'scheduled' : 'switched',
         };
 
         if (isScheduled){
-            obj.setting.schedule = {
-                alertStart: (hour * 3600) + (minute * 60),
-                alertEnd: (endHour * 3600) + (endMin * 60),
+            obj = {
+                ...obj,
+                alertStartInMinutes: (hour * 3600) + (minute * 60),
+                alertEndInMinutes: (endHour * 3600) + (endMin * 60),
+                alertStart: [(hour < 10 ? '0' + String(hour) : String(hour)) + ':' +  (minute < 10 ? '0' + String(minute) : String(minute))],
+                alertEnd: [(endHour < 10 ? '0' + String(endHour) : String(endHour)) + ':' + (endMin < 10 ? '0' + String(endMin) : String(endMin))],
             };
         } else
         {
-            obj.setting.switchState = isDetected;
+            obj.switchState = isDetected;
         }
 
-        console.log(obj);
+        // console.log(obj);
+        await axios({
+            method:'POST',
+            data: obj,
+            url: client.updateSettings,
+        }).then(res=>{
+            // console.log(res.data);
+            props.navigation.goBack();
+        }).catch(err=>{
+            console.log(err);
+        });
     };
+
+    const getSettings = React.useCallback(
+        async (cameraID, password)=>{
+            await axios({
+                method:'POST',
+                url: client.getSettings,
+                data:{
+                    cameraID,
+                    password,
+                },
+            }).then(({data})=>{
+                var camObj = data.data;
+                // console.log(camObj);
+                setNickName(camObj.nickname || '');
+                setSlide(camObj.sensitivity / 100 || 0.75);
+                if (camObj.phoneNumbers.length){
+
+                    var phoneObj = camObj.phoneNumbers.map(itm=>{
+                        return {
+                            phone: itm,
+                            error:'',
+                        };
+                    });
+                    setPhones(phoneObj);
+                }
+                if (camObj.alertSetting === "switched"){
+                    setIsScheduled(true);
+                    var [startHour, startMin] = [0,0];
+                    var [endTmpHour, endTmpMin] = [12,0];
+                    var time;
+
+                    console.log(camObj.alertStart);
+                    if (typeof camObj.alertStart === 'number'){
+                        time = camObj.alertStart[0].split(':');
+                        [startHour, startMin] = time;
+                    }
+
+                    if (camObj.alertEnd.length){
+                        time = camObj.alertStart[0].split(':');
+                        [endTmpHour, endTmpMin] = time;
+                    }
+
+                    setHour(parseInt(startHour));
+                    setMinute(parseInt(startMin));
+                    setEndHour(parseInt(endTmpHour));
+                    setEndMin(parseInt(endTmpMin));
+                } else {
+                    setIsDetected(camObj.switchState ? camObj.switchState : false);
+                }
+            }).catch(err=>{
+                console.log(err);
+            });
+        },
+        [],
+    );
+
+    React.useEffect(()=>{
+        var {cameraID, password} = props.route.params.item;
+        // console.log(cameraID, password);
+        if (cameraID && password){
+            getSettings(cameraID, password);
+        }
+    },[getSettings, props.route.params.item]);
 
     return (
         <ScrollView style={{flex:1, padding:16, backgroundColor:'white'}}>
 
             <Text style={styles.heading}>Camera ID:</Text>
-            <Text style={styles.cameraHead}>shreerammedicos</Text>
+            <Text style={styles.cameraHead}>{props.route.params.item.cameraID}</Text>
 
             <TextInput
                 style={styles.nickNameBox}

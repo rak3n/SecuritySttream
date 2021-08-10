@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image } from 'react-native';
 import SyncStorage from 'sync-storage';
 import Host from '../Host/Host';
-import { CAMERA_KEY } from '../Storage';
+import { CAMERA_KEY, HOST_CAMERA_LOGIN_KEY } from '../Storage';
 import MotionDetectSignifier from './MotionDetectSignifier';
 
 //ASSETS
@@ -31,17 +31,23 @@ const Home = ({navigation})=>{
             }
         });
 
+
+        let hostLogin = SyncStorage.get(HOST_CAMERA_LOGIN_KEY);
+        if (hostLogin){
+            setHost(true);
+        }
+
         return unsub;
     },[]);
 
     const renderItem = ({item})=>{
         console.log(item);
         return (
-            <View style={{borderWidth:1, minHeight:128, borderColor:'black', margin:8,shadowColor:'rgba(0, 0, 0, 0.25)', backgroundColor:'white', shadowOffset:{width:0, height:4}, shadowRadius:2, elevation:10 , padding:16, borderRadius:4}}>
+            <View key={item.cameraID} style={{borderWidth:1, minHeight:128, borderColor:'black', margin:8,shadowColor:'rgba(0, 0, 0, 0.25)', backgroundColor:'white', shadowOffset:{width:0, height:4}, shadowRadius:2, elevation:10 , padding:16, borderRadius:4}}>
                 <View style={styles.rowView}>
-                    <Text style={styles.storeId}>ID: {item.id}</Text>
+                    <Text style={styles.storeId}>ID: {item.cameraID}</Text>
                     <TouchableOpacity
-                        onPress={()=>navigation.navigate("Setting")}>
+                        onPress={()=>navigation.navigate("Setting", {item})}>
                         <Text style={styles.settingTap}>Settings</Text>
                     </TouchableOpacity>
                 </View>
@@ -50,13 +56,13 @@ const Home = ({navigation})=>{
                     MotionDetectSignifier Component render the motionDetection off or on based on props type as:
                         1. ON: For only On component
                         2. OFF: For only Off Component
-                        3: Swicth: Intelligent enough to decide on or off based on timming, using start and end time props;
+                        3: Switch: Intelligent enough to decide on or off based on timming, using start and end time props;
                             i> start: Start Time
                             ii> end: End Time
                      */}
                     <MotionDetectSignifier type={'Switch'} start={"11:00 AM"} end={"11:00 PM"}/>
 
-                    <TouchableOpacity style={{justifyContent:'center', alignItems:'center'}} onPress={()=>navigation.navigate("ClientStream", {hostId:item.id})}>
+                    <TouchableOpacity style={{justifyContent:'center', alignItems:'center'}} onPress={()=>navigation.navigate("ClientStream", {hostId:item.cameraID})}>
                         <Image source={watchIco} style={{marginBottom:2}}/>
                         <Text style={{color:'red', lineHeight:19.07, textAlign:'center', fontSize: 14, fontWeight: '700'}}>WATCH</Text>
                     </TouchableOpacity>

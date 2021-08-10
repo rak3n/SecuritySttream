@@ -54,3 +54,5 @@ if (isHermesEnabled || isAndroid) {
 }
 
 AppRegistry.registerComponent(appName, () => App);
+console.ignoredYellowBox = ['Warning: Each', 'Warning: Failed'];
+console.disableYellowBox = true;
