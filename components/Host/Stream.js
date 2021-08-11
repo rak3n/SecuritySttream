@@ -10,16 +10,20 @@ import axios from 'axios';
 import { host } from '../../config/URL';
 import {database} from '../../config/fire';
 
-// var counter = new Set();
 var peer;
 
 const Stream = props => {
   const [stream, setStream] = React.useState(false);
   const [motion, setMotion] = React.useState(false);
-  var streamNotReadyInterval;
-  const ALERT_COOLDOWN_INTERVAL = 5 * 60 * 1000; //Seconds after to sendMessage;
   const [coolDownMotion, setCoolDownMotion] = React.useState(false);
   const [blinkStreamColor, setBlinkStreamColor] = React.useState('');
+  const [phonesArr, setPhoneArr] = React.useState([]);
+  const [sensi, setSensi] = React.useState(70);
+
+  //NON State dependence Variables;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  var streamNotReadyInterval;
+  const ALERT_COOLDOWN_INTERVAL = 5 * 60 * 1000; //Seconds after to sendMessage;
+  //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   React.useEffect(() => {
     if (!stream) {
@@ -45,26 +49,19 @@ const Stream = props => {
   const sendMessageAPI = async () => {
     if (!coolDownMotion) {
       setCoolDownMotion(true);
-      const cameraObj = syncStorage.get(HOST_CAMERA_LOGIN_KEY);
+
+      //Make Call on Motion Detection;;;;;;;;
       await axios({
-        method:'POST',
-        url: host.getSetting,
-        data: cameraObj,
-      }).then(async ({data})=>{
-        var phonesArr = data.data.phoneNumbers;
-        // console.log(data);
-        await axios({
-          method:'GET',
-          url:host.makeCall(phonesArr),
-        }).then(res=>{
-          // console.log(res);
-        }).catch(err=>{
-          console.log(err);
-        });
+        method:'GET',
+        url:host.makeCall(phonesArr),
+      }).then(res=>{
+        // console.log(res);
       }).catch(err=>{
         console.log(err);
       });
+      //;;;;;;;;;;;;;
 
+      //Allow Calling to User after ALERT_COOLDOWN_INTERVAL microseconds;;;;;;;
       setTimeout(()=>setCoolDownMotion(false), ALERT_COOLDOWN_INTERVAL);
     }
   };
@@ -77,12 +74,6 @@ const Stream = props => {
     setTimeout(() => {
       setMotion(false);
     }, 200);
-  };
-
-  const sendMotionToAll=(isMotion)=>{
-      peer.on('connection', connection=>{
-          connection.send({motion: isMotion});
-      });
   };
 
   const handleLogoutReq = async ()=>{
@@ -145,7 +136,7 @@ const Stream = props => {
     <View style={styles.body}>
       {stream === false ? (
         <View style={{width: '95%', height: '100%'}}>
-          <Detect handleMotion={handleMotion} />
+          <Detect handleMotion={handleMotion} senstivity={100-sensi}/>
         </View>
       ) : stream === true ?
         null
@@ -227,16 +218,29 @@ const Stream = props => {
     []
   );
 
+  const getAndSetAllSettings = async (cameraObj) =>{
+    //Get HOST setting set by clients.
+    await axios({
+      method:'POST',
+      url: host.getSetting,
+      data: cameraObj,
+    }).then(async ({data})=>{
+
+      //Set the setting for the current Page
+      console.log(data.data);
+      setPhoneArr(data.data.phoneNumbers || []);
+      setSensi(data.data.sensitivity === undefined ? 70 : data.data.sensitivity);
+    }).catch(err=>{
+      console.log(err);
+    });
+  };
+
+  //React UseEffect Hook
   React.useEffect(() => {
-    // mediaDevices.enumerateDevices().then(sourceInfos => {
-    //   let isFront = false;
-    //   console.log(sourceInfos);
-    //   getStream('0', isFront);
-    // });
-
     OnlyListenCall();
-
-    database.ref('cameraListeners/' + syncStorage.get(HOST_CAMERA_LOGIN_KEY).cameraID + '/connected').on('value',snapshot=>{
+    const cameraObj = syncStorage.get(HOST_CAMERA_LOGIN_KEY);
+    getAndSetAllSettings(cameraObj);
+    database.ref('cameraListeners/' + cameraObj.cameraID + '/connected').on('value',snapshot=>{
       const count = snapshot.val();
       if (count === 0){
         setStream(false);
@@ -245,7 +249,7 @@ const Stream = props => {
 
     return ()=>{
       console.log('closed');
-    }
+    };
   }, []);
 
   return (

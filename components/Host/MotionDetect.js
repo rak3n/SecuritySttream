@@ -6,7 +6,7 @@ const Detect = (props) => {
 
   return (
     <View style={{width:'100%', flex:1, height:'100%', backgroundColor:'blue'}}>
-        <SurfaceView senstivity={30} gotMotion={props.handleMotion}/>
+        <SurfaceView senstivity={props.senstivity === undefined ? 30 : props.senstivity} gotMotion={props.handleMotion}/>
     </View>
   );
 };
