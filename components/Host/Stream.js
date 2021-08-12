@@ -103,7 +103,7 @@ const Stream = props => {
             lineHeight: 20,
             color: 'white',
           }}>
-          Senstivity: <Text style={{color: '#00B2FF'}}>10%</Text>
+          Sensitivity: <Text style={{color: '#00B2FF'}}>10%</Text>
         </Text>
         <Text
           style={{
@@ -136,7 +136,7 @@ const Stream = props => {
     <View style={styles.body}>
       {stream === false ? (
         <View style={{width: '95%', height: '100%'}}>
-          <Detect handleMotion={handleMotion} senstivity={100-sensi}/>
+          <Detect handleMotion={handleMotion} senstivity={100 - sensi}/>
         </View>
       ) : stream === true ?
         null

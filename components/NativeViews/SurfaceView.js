@@ -1,10 +1,7 @@
-import React, { Component } from 'react';
+import React from 'react';
 import {
   requireNativeComponent,
   View,
-  Text,
-  TouchableOpacity,
-  Image,
   StyleSheet,
 } from 'react-native';
 
@@ -24,16 +21,16 @@ const SurfaceView = (props)=>{
     props.gotMotion();
   };
 
-  console.log(props.senstivity);
+  // console.log(props.senstivity);
 
     return (
-            <View style={{width:'100%', height:'100%', backgroundColor:'green'}}>
-                <NativeSurfaceView
-                  onMotion={onMotionDetect}
-                  senstivity={props.senstivity}
-                  style={{position:'absolute', top:0, left:0, right:0, bottom:0}}
-                />
-            </View>
+      <View style={{width:'100%', height:'100%', backgroundColor:'green'}}>
+          <NativeSurfaceView
+            onMotion={onMotionDetect}
+            senstivity={props.senstivity}
+            style={{position:'absolute', top:0, left:0, right:0, bottom:0}}
+          />
+      </View>
     );
 };
 

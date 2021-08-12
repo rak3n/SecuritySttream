@@ -99,7 +99,7 @@ const Settings = (props)=>{
             password: props.route.params.item.password,
             nickname: nickName,
             phoneNumbers: phones.map(itm=>itm.phone),
-            senstivity: slide * 100,
+            sensitivity: slide * 100,
             resolutionH: 768,
             resolutionV: 480,
             alertSetting: isScheduled ? 'scheduled' : 'switched',
@@ -216,7 +216,7 @@ const Settings = (props)=>{
                 <Picker.Item label='768x480p' value='768x480p'></Picker.Item>
             </Picker>
 
-            <Text style={styles.heading}>Senstivity</Text>
+            <Text style={styles.heading}>Sensitivity</Text>
             <View style={{flexDirection:'row', justifyContent:'space-between', width:'100%', marginTop:16}}>
                 <Slider
                     thumbTintColor="#7E7E7E"

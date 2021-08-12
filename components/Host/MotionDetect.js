@@ -27,4 +27,4 @@ const styles = StyleSheet.create({
     right:0,
   },
   container: StyleSheet.absoluteFillObject,
-})
+});
