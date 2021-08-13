@@ -33,6 +33,7 @@
     "react-native-axios": "^0.17.1",
     "react-native-canvas": "^0.1.37",
     "react-native-gesture-handler": "^1.10.3",
+    "react-native-keep-awake": "^4.0.0",
     "react-native-localize": "^2.1.1",
     "react-native-paper": "^4.9.2",
     "react-native-paper-dates": "^0.4.6",

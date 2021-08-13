@@ -11,11 +11,11 @@ const AddCam = ({navigation})=>{
     const [nickname, setNickName] = React.useState('');
 
     const saveCameraReq = async () =>{
-      console.log(client.getSettings);
-      console.log({
-        cameraID: id,
-        password,
-      });
+      // console.log(client.getSettings);
+      // console.log({
+      //   cameraID: id,
+      //   password,
+      // });
         await axios({
           method:'POST',
           url: client.getSettings,
@@ -95,8 +95,8 @@ const AddCam = ({navigation})=>{
         }}
         placeholderTextColor="#7e7e7e"/>
       <TouchableOpacity
-         style={style.button}
-         onPress={saveCamera}
+         style={{...style.button, backgroundColor: id.length && password.length ? '#0057ad': '#b8b6b6'}}
+         onPress={id.length && password.length ? saveCamera : null}
        >
          <Text style={ {color: '#fff'} }> Done </Text>
        </TouchableOpacity>
@@ -116,7 +116,6 @@ const style = StyleSheet.create({
         color: '#000000',
         fontSize:36,
         fontWeight: 'bold',
-        // marginBottom:20,
         paddingBottom: 60,
     },
     inputs:{
@@ -127,7 +126,6 @@ const style = StyleSheet.create({
         marginBottom:22,
     },
     button:{
-        backgroundColor:'#b8b6b6',
         borderRadius: 4,
         marginTop:50,
         justifyContent:'center',

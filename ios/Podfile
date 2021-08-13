@@ -19,6 +19,8 @@ target 'SecurityStream' do
 
   pod 'react-native-video', :path => '../node_modules/react-native-video'
 
+  pod 'react-native-keep-awake', :path => '../node_modules/react-native-keep-awake'
+
   target 'SecurityStreamTests' do
     inherit! :complete
     # Pods for testing

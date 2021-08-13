@@ -11,6 +11,8 @@ import { host } from '../../config/URL';
 import {database} from '../../config/fire';
 import TimeConver from '../Utils/timeConver';
 
+import KeepAwake from 'react-native-keep-awake';
+
 var peer;
 var motionTimeLoop;
 var motionTimeObj = {};
@@ -129,7 +131,7 @@ const Stream = props => {
             lineHeight: 20,
             color: 'white',
           }}>
-          Sensitivity: <Text style={{color: '#00B2FF'}}>10%</Text>
+          Sensitivity: <Text style={{color: '#00B2FF'}}>{sensi}%</Text>
         </Text>
         <Text
           style={{
@@ -287,7 +289,11 @@ const Stream = props => {
     database.ref('cameraListeners').child(cameraObj.cameraID + '/settingsLastUpdate:').on('value',snapshot=>{
       getAndSetAllSettings(cameraObj);
     });
+
+    KeepAwake.activate();
+
     return ()=>{
+      KeepAwake.deactivate();
       clearInterval(motionTimeLoop);
     };
   }, []);

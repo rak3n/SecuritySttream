@@ -1,9 +1,10 @@
 import axios from 'axios';
 import React from 'react';
-import {View, TextInput, StyleSheet, Picker, Image, ScrollView, Text, Slider, Switch, Button, TouchableOpacity} from 'react-native';
+import {View, TextInput, StyleSheet, Picker, ScrollView, Text, Slider, Switch, TouchableOpacity} from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 // import { TimePicker } from 'react-native-simple-time-picker';
 import { TimePickerModal } from 'react-native-paper-dates';
-import { database } from '../../config/fire';
+// import { database } from '../../config/fire';
 import { client } from '../../config/URL';
 import PhoneComponent from './PhoneComponent';
 
@@ -20,6 +21,7 @@ const Settings = (props)=>{
     const [isScheduled, setIsScheduled]  = React.useState(false);
     const [isDetected, setIsDetected] = React.useState(true);
     const [nickName, setNickName] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
 
     const [phones, setPhones] = React.useState([]);
 
@@ -119,6 +121,8 @@ const Settings = (props)=>{
             obj.switchState = isDetected;
         }
 
+        console.log(client.updateSettings);
+
         console.log(obj);
         await axios({
             method:'POST',
@@ -134,6 +138,7 @@ const Settings = (props)=>{
 
     const getSettings = React.useCallback(
         async (cameraID, password)=>{
+            setLoading(true);
             await axios({
                 method:'POST',
                 url: client.getSettings,
@@ -180,6 +185,7 @@ const Settings = (props)=>{
                 } else {
                     setIsDetected(camObj.switchState ? camObj.switchState : false);
                 }
+                setLoading(false);
             }).catch(err=>{
                 console.log(err);
             });
@@ -195,9 +201,16 @@ const Settings = (props)=>{
         }
     },[getSettings, props.route.params.item]);
 
+    if (loading){
+        return (
+            <View style={{flex:1, width:'100%', backgroundColor:'#fff', height:'100%', alignItems:'center', justifyContent:'center'}}>
+                <ActivityIndicator size="large" color="#0057ad"/>
+            </View>
+        );
+    }
+
     return (
         <ScrollView style={{flex:1, padding:16, backgroundColor:'white'}}>
-
             <Text style={styles.heading}>Camera ID:</Text>
             <Text style={styles.cameraHead}>{props.route.params.item.cameraID}</Text>
 
