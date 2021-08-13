@@ -1,4 +1,4 @@
-import {View, Text, TextInput, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, ToastAndroid} from 'react-native';
 import React from 'react';
 import { Colors } from 'react-native/Libraries/NewAppScreen';
 import Dialog, { DialogContent } from 'react-native-popup-dialog';
@@ -69,6 +69,7 @@ const Login = (props) => {
         //   console.log(data);
           if (data.success){
             setLogout(false);
+            makeUserLoginReq();
             setId('');
             setPassword('');
           }
@@ -106,6 +107,7 @@ const Login = (props) => {
           }
       }).catch(err=>{
           console.log(err);
+          ToastAndroid.show("An Error Occured while setting the Camera", ToastAndroid.SHORT);
       });
     // ()=>props.setAuth(true);
   };

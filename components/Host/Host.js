@@ -5,7 +5,7 @@ import Stream from './Stream';
 import syncStorage from 'sync-storage';
 import { HOST_CAMERA_LOGIN_KEY } from '../Storage';
 
-const Host=({setHost})=>{
+const Host = ({setHost})=>{
     const [auth, setAuth] = React.useState(false);
 
     React.useEffect(()=>{
@@ -25,6 +25,6 @@ const Host=({setHost})=>{
             }
         </View>
     );
-}
+};
 
 export default Host;

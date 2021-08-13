@@ -25,12 +25,11 @@ const Home = ({navigation})=>{
     React.useEffect(()=>{
         var unsub = navigation.addListener('focus',()=>{
             var data = SyncStorage.get(CAMERA_KEY);
-            console.log(data);
+            // console.log(data);
             if (data){
                 setCameras(data);
             }
         });
-
 
         let hostLogin = SyncStorage.get(HOST_CAMERA_LOGIN_KEY);
         if (hostLogin){
@@ -42,6 +41,9 @@ const Home = ({navigation})=>{
 
     const renderItem = ({item})=>{
         console.log(item);
+        // item.alertSetting="scheduled";
+        // item.alertStart = ["9:00"];
+        // item.alertEnd = ["10:00"];
         return (
             <View key={item.cameraID} style={{borderWidth:1, minHeight:128, borderColor:'black', margin:8,shadowColor:'rgba(0, 0, 0, 0.25)', backgroundColor:'white', shadowOffset:{width:0, height:4}, shadowRadius:2, elevation:10 , padding:16, borderRadius:4}}>
                 <View style={styles.rowView}>
@@ -52,7 +54,7 @@ const Home = ({navigation})=>{
                     </TouchableOpacity>
                 </View>
                 <View style={{flexDirection:'row', paddingLeft:20, paddingRight:20, justifyContent:'space-between', alignItems:'center'}}>
-                    {/* 
+                    {/*
                     MotionDetectSignifier Component render the motionDetection off or on based on props type as:
                         1. ON: For only On component
                         2. OFF: For only Off Component
@@ -60,7 +62,7 @@ const Home = ({navigation})=>{
                             i> start: Start Time
                             ii> end: End Time
                      */}
-                    <MotionDetectSignifier type={'Switch'} start={"11:00 AM"} end={"11:00 PM"}/>
+                    <MotionDetectSignifier type={item.alertSetting === "scheduled" ? "Switch" : item.switchState ? "ON" : "OFF"} start={item?.alertStart ? item?.alertStart[0] : "00:00"} end={item?.alertEnd ? item?.alertEnd[0] : "00:00"}/>
 
                     <TouchableOpacity style={{justifyContent:'center', alignItems:'center'}} onPress={()=>navigation.navigate("ClientStream", {hostId:item.cameraID})}>
                         <Image source={watchIco} style={{marginBottom:2}}/>

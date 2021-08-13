@@ -3,6 +3,7 @@ import React from 'react';
 import {View, TextInput, StyleSheet, Picker, Image, ScrollView, Text, Slider, Switch, Button, TouchableOpacity} from 'react-native';
 // import { TimePicker } from 'react-native-simple-time-picker';
 import { TimePickerModal } from 'react-native-paper-dates';
+import { database } from '../../config/fire';
 import { client } from '../../config/URL';
 import PhoneComponent from './PhoneComponent';
 
@@ -99,7 +100,7 @@ const Settings = (props)=>{
             password: props.route.params.item.password,
             nickname: nickName,
             phoneNumbers: phones.map(itm=>itm.phone),
-            sensitivity: slide * 100,
+            sensitivity: (slide * 100).toFixed(2),
             resolutionH: 768,
             resolutionV: 480,
             alertSetting: isScheduled ? 'scheduled' : 'switched',
@@ -118,13 +119,13 @@ const Settings = (props)=>{
             obj.switchState = isDetected;
         }
 
-        // console.log(obj);
+        console.log(obj);
         await axios({
             method:'POST',
             data: obj,
             url: client.updateSettings,
         }).then(res=>{
-            // console.log(res.data);
+            console.log(res.data);
             props.navigation.goBack();
         }).catch(err=>{
             console.log(err);
@@ -308,7 +309,7 @@ const Settings = (props)=>{
             </View>
 
             <View style={{alignItems:'center', marginTop:50, marginBottom:90}}>
-                <TouchableOpacity style={{...styles.saveBtn, backgroundColor: nickName.length ? '#0057ad' : '#c4c4c4'}} onPress={handleSave}>
+                <TouchableOpacity style={{...styles.saveBtn, backgroundColor: nickName.length ? '#0057ad' : '#c4c4c4'}} onPress={nickName.length ? handleSave : null}>
                     <Text style={styles.saveText}>Save</Text>
                 </TouchableOpacity>
             </View>

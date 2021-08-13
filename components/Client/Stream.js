@@ -22,8 +22,10 @@ const Stream = ({route, navigation})=>{
             }, err=>{
                 console.log(err);
             });
-        }else{
-            ToastAndroid.show("Client is Offline!!", ToastAndroid.SHORT);
+        }
+        else
+        {
+            ToastAndroid.show("Client/Host is Offline or not Responding !!", ToastAndroid.SHORT);
         }
     };
 

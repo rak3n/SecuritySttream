@@ -9,16 +9,21 @@ import { HOST_CAMERA_LOGIN_KEY } from '../Storage';
 import axios from 'axios';
 import { host } from '../../config/URL';
 import {database} from '../../config/fire';
+import TimeConver from '../Utils/timeConver';
 
 var peer;
+var motionTimeLoop;
+var motionTimeObj = {};
 
 const Stream = props => {
   const [stream, setStream] = React.useState(false);
   const [motion, setMotion] = React.useState(false);
+  const [isPeerConnected, setIsPeerConnected] = React.useState(false);
   const [coolDownMotion, setCoolDownMotion] = React.useState(false);
   const [blinkStreamColor, setBlinkStreamColor] = React.useState('');
   const [phonesArr, setPhoneArr] = React.useState([]);
   const [sensi, setSensi] = React.useState(70);
+  const [hardMotionDetect, setHardMotionDetect] = React.useState(true);
 
   //NON State dependence Variables;;;;;;;;;;;;;;;;;;;;;;;;;;;
   var streamNotReadyInterval;
@@ -26,7 +31,7 @@ const Stream = props => {
   //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   React.useEffect(() => {
-    if (!stream) {
+    if (!isPeerConnected) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       streamNotReadyInterval = setInterval(() => {
         setBlinkStreamColor(streamColor => {
@@ -45,6 +50,27 @@ const Stream = props => {
       clearInterval(streamNotReadyInterval);
     };
   }, [stream]);
+
+  const liveTimeCheck = ()=>{
+    /**
+     * motionTimeObj = {
+        start: data.data.alertStart,
+        end: data.data.alertEnd,
+        switchType: data.data.alertSettings === "scheduled" ? "Schedule" : "Switch",
+        motionDetect: data.data.switchState,
+      };
+     */
+    // console.log("-----------------------------------------------------------");
+    // console.log(motionTimeObj);
+    if (motionTimeObj.switchType === "Scheduled" && motionTimeObj.start && motionTimeObj.end){
+      var shouldDetectMotion = TimeConver(motionTimeObj.start, motionTimeObj.end);
+      setHardMotionDetect(shouldDetectMotion);
+    }
+    else
+    {
+      setHardMotionDetect(motionTimeObj.motionDetect ? true : false);
+    }
+  };
 
   const sendMessageAPI = async () => {
     if (!coolDownMotion) {
@@ -134,17 +160,26 @@ const Stream = props => {
 
   const body = (
     <View style={styles.body}>
-      {stream === false ? (
-        <View style={{width: '95%', height: '100%'}}>
-          <Detect handleMotion={handleMotion} senstivity={100 - sensi}/>
-        </View>
-      ) : stream === true ?
-        null
-      :
-        <RTCView
+      {
+        hardMotionDetect ?
+        stream === false ? (
+          <View style={{width: '95%', height: '100%'}}>
+            <Detect handleMotion={handleMotion} senstivity={100 - sensi}/>
+          </View>
+        ) : stream === true ?
+          null
+        :
+          <RTCView
+            style={{width:'100%', height:400}}
+            streamURL={stream.toURL()}
+          />
+        : stream === true || stream === false?
+          null
+        :
+          <RTCView
           style={{width:'100%', height:400}}
           streamURL={stream.toURL()}
-        />
+      />
       }
     </View>
   );
@@ -163,7 +198,7 @@ const Stream = props => {
         style={[
           {height: 14, borderRadius: 4, width: '100%'},
           {
-            backgroundColor: stream ? '#00FF47' : blinkStreamColor,
+            backgroundColor: isPeerConnected ? '#00FF47' : blinkStreamColor,
             borderRadius: 4,
           },
         ]}
@@ -206,12 +241,13 @@ const Stream = props => {
       });
       peer.on('open', localPeerId => {
         console.log(localPeerId);
+        setIsPeerConnected(true);
         database.ref('cameraListeners/' + syncStorage.get(HOST_CAMERA_LOGIN_KEY).cameraID + '/sessionID').set(localPeerId);
 
           peer.on('call', call => {
           console.log('connect Req');
           setStream(true);
-          getStream('0', false, (gStream)=>{call.answer(gStream); setStream(gStream)});
+          getStream('0', false, (gStream)=>{call.answer(gStream); setStream(gStream);});
         });
       });
     },
@@ -227,7 +263,15 @@ const Stream = props => {
     }).then(async ({data})=>{
 
       //Set the setting for the current Page
-      console.log(data.data);
+      // console.log(data.data);
+      motionTimeObj = {
+        start: data.data.alertStart,
+        end: data.data.alertEnd,
+        switchType: data.data.alertSettings === "scheduled" ? "Schedule" : "Switch",
+        motionDetect: data.data.switchState,
+      };
+      liveTimeCheck();
+
       setPhoneArr(data.data.phoneNumbers || []);
       setSensi(data.data.sensitivity === undefined ? 70 : data.data.sensitivity);
     }).catch(err=>{
@@ -238,19 +282,28 @@ const Stream = props => {
   //React UseEffect Hook
   React.useEffect(() => {
     OnlyListenCall();
+    motionTimeLoop = setInterval(liveTimeCheck, 5000);
     const cameraObj = syncStorage.get(HOST_CAMERA_LOGIN_KEY);
-    getAndSetAllSettings(cameraObj);
-    database.ref('cameraListeners/' + cameraObj.cameraID + '/connected').on('value',snapshot=>{
-      const count = snapshot.val();
-      if (count === 0){
-        setStream(false);
-      }
+    database.ref('cameraListeners').child(cameraObj.cameraID + '/settingsLastUpdate:').on('value',snapshot=>{
+      getAndSetAllSettings(cameraObj);
     });
-
     return ()=>{
-      console.log('closed');
+      clearInterval(motionTimeLoop);
     };
   }, []);
+
+  React.useEffect(()=>{
+    const cameraObj = syncStorage.get(HOST_CAMERA_LOGIN_KEY);
+    getAndSetAllSettings(cameraObj);
+    if (hardMotionDetect){
+      database.ref('cameraListeners/' + cameraObj.cameraID + '/connected').on('value',snapshot=>{
+        const count = snapshot.val();
+        if (count === 0){
+          setStream(false);
+        }
+      });
+    }
+  },[hardMotionDetect]);
 
   return (
     <View

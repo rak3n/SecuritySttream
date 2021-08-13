@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, Text, TextInput, ToastAndroid, StyleSheet, TouchableOpacity} from 'react-native';
 import {CAMERA_KEY} from '../Storage';
-import SyncStorage from 'sync-storage';
+import syncStorage from 'sync-storage';
 import axios from 'axios';
 import { client } from '../../config/URL';
 
@@ -10,7 +10,7 @@ const AddCam = ({navigation})=>{
     const [password, setPassword] = React.useState('');
     const [nickname, setNickName] = React.useState('');
 
-    const saveCamera = async () =>{
+    const saveCameraReq = async () =>{
       console.log(client.getSettings);
       console.log({
         cameraID: id,
@@ -28,14 +28,14 @@ const AddCam = ({navigation})=>{
           console.log(data);
           if (data.success){
             if (data.data){
-              var cams = SyncStorage.get(CAMERA_KEY);
+              var cams = syncStorage.get(CAMERA_KEY);
               console.log(cams);
               if (!cams){
                   cams = [];
               }
               cams = [...cams, data.data];
-              SyncStorage.set(CAMERA_KEY, cams);
-              console.log(SyncStorage.get(CAMERA_KEY));
+              syncStorage.set(CAMERA_KEY, cams);
+              console.log(syncStorage.get(CAMERA_KEY));
               navigation.goBack();
             } else {
               ToastAndroid.show("Invalid camera configs !", ToastAndroid.SHORT);
@@ -53,16 +53,19 @@ const AddCam = ({navigation})=>{
           ToastAndroid.show("Something went wrong !", ToastAndroid.SHORT);
           console.log(err);
         });
+    };
 
-        // var cams = SyncStorage.get(CAMERA_KEY);
-        // console.log(cams);
-        // if (!cams){
-        //     cams = [];
-        // }
-        // cams = [...cams, {id, password, nickname}];
-        // SyncStorage.set(CAMERA_KEY, cams);
-        // console.log(SyncStorage.get(CAMERA_KEY));
-        // navigation.goBack();
+    const saveCamera = () =>{
+      var cams = syncStorage.get(CAMERA_KEY);
+      if (cams){
+        var cameraExist = cams.filter(itm => itm.cameraID === id);
+        if (cameraExist.length > 0){
+          ToastAndroid.show("Camera ID already exists !!!!", ToastAndroid.SHORT);
+          navigation.goBack();
+          return;
+        }
+      }
+      saveCameraReq();
     };
 
     return (
@@ -99,7 +102,7 @@ const AddCam = ({navigation})=>{
        </TouchableOpacity>
     </View>
     );
-}
+};
 
 const style = StyleSheet.create({
     login: {
